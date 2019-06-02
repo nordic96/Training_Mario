@@ -1,42 +1,65 @@
+import tensorflow as tf
 import gym_super_mario_bros
-import cv2
-from DQNAgent import DQNAgent
+import os
+import numpy as np
+from action_wrapper import mario_action_interpret
+from random import randint
+from DQNAgent import _build_model
 from nes_py.wrappers import BinarySpaceToDiscreteSpaceEnv
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 
-EPISODES = 5000
+ENV_ID = 'SuperMarioBros-v0'
+EPISODES = 100
+MODEL_FILE_PATH = './model/nn_model.HDF5'
+MODEL_DIR = './model/'
 
-def train_dqn(env_id):
-    env = gym_super_mario_bros.make(env_id)
-    env = BinarySpaceToDiscreteSpaceEnv(env, SIMPLE_MOVEMENT)
-
-    state_size = env.observation_space.shape[0]
-    action_size = env.action_space.n
-    agent = DQNAgent(state_size, action_size)
-    done = False
-    batch_size = 32
+def train_dqn(env):
+    if os.path.exists(MODEL_FILE_PATH):
+        model = tf.keras.models.load_model(MODEL_FILE_PATH)
+        print('loaded model: {}'.format(MODEL_FILE_PATH))
+    else:
+        if os.path.exists(MODEL_DIR):
+            print('first time setup.')
+            os.mkdir(MODEL_DIR)
+        model = _build_model(action_size, state_size)
     
+    done = True
+    last_state = None
+    identity = np.identity(env.action_space.n)
+
     for e in range(EPISODES):
-        state = env.reset()
-        state = cv2.cvtColor(state, cv2.COLOR_BGR2GRAY)
-        env.render()
-        for time in range(500):
-            action = agent.act(state)
-            next_state, reward, done, _  = env.step(action)
-            next_state = cv2.cvtColor(next_state, cv2.COLOR_BGR2GRAY)
-            reward = reward if not done else -10
-
-            agent.remember(state, action, reward, next_state, done)
-            state = next_state
+        for step in range(1000):
             if done:
-                agent.update_target_model()
-                print("episode: {}/{}, score: {}. e: {:.2}".format(e, EPISODES, time, agent.epsilon))
-                break
-            if len(agent.memory) > batch_size:
-                agent.replay(batch_size)
+                state = env.reset()
 
-            if e % 10 == 0:
-                agent.save("./save/mario-ddqn.h5")
+            action_source = ""
+            if randint(0, 10) == 1 or not isinstance(last_state, (np.ndarray, np.generic)):
+                action = env.action_space.sample()
+                action_source = "random"
+            else:
+                action = np.argmax(model.predict(np.expand_dims(last_state, axis = 0)))
+                action_source = "learn"
+            #print('{}: {}'.format(action_source, mario_action_interpret(action)))
+            state, reward, done, info = env.step(action)
+            last_state = state
+
+            if reward > 0:
+                model.train_on_batch(x = np.expand_dims(last_state, axis = 0), y = identity[action: action + 1])
+
+            env.render()
+
+        print('Ep: {}/{} '.format(e, EPISODES))
+        model.save(MODEL_FILE_PATH)
+                
         
 if __name__ == '__main__':
-    train_dqn('SuperMarioBros-v0')
+    env = gym_super_mario_bros.make(ENV_ID)
+    env = BinarySpaceToDiscreteSpaceEnv(env, SIMPLE_MOVEMENT)
+
+    state_size = env.observation_space.shape
+    action_size = env.action_space.n
+
+    print('state size: {}'.format(state_size))
+    print('action size: {}'.format(action_size))
+
+    train_dqn(env)
