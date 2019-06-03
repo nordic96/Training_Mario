@@ -14,21 +14,26 @@ MODEL_FILE_PATH = './model/nn_model.HDF5'
 MODEL_DIR = './model/'
 
 def train_dqn(env):
+    '''
     if os.path.exists(MODEL_FILE_PATH):
         model = tf.keras.models.load_model(MODEL_FILE_PATH)
         print('loaded model: {}'.format(MODEL_FILE_PATH))
     else:
-        if os.path.exists(MODEL_DIR):
+        if not os.path.exists(MODEL_DIR):
             print('first time setup.')
             os.mkdir(MODEL_DIR)
         model = _build_model(action_size, state_size)
+    '''
+    model = _build_model(action_size, state_size)
+    print(model.summary())
+
     
     done = True
     last_state = None
     identity = np.identity(env.action_space.n)
 
     for e in range(EPISODES):
-        for step in range(1000):
+        for step in range(500):
             if done:
                 state = env.reset()
 
@@ -50,7 +55,7 @@ def train_dqn(env):
 
         print('Ep: {}/{} '.format(e, EPISODES))
         model.save(MODEL_FILE_PATH)
-                
+    
         
 if __name__ == '__main__':
     env = gym_super_mario_bros.make(ENV_ID)

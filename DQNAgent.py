@@ -1,27 +1,34 @@
-import tensorflow as tf
+from keras import Sequential
+from keras.layers import Conv2D, Dense, Flatten
+from keras.optimizers import Adam
 
 def _build_model(action_size, state_size):
-    model = tf.keras.models.Sequential([
-        
-        tf.keras.layers.Convolution2D(32, 8, 8, input_shape= state_size),
-        tf.keras.layers.Activation('relu'),
-
-        tf.keras.layers.Convolution2D(64, 4, 4),
-        tf.keras.layers.Activation('relu'),
-
-        tf.keras.layers.Convolution2D(64, 3, 3),
-        tf.keras.layers.Activation('relu'),
-
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(512),
-        tf.keras.layers.Activation('relu'),
-
-        tf.keras.layers.Dense(action_size, activation=tf.nn.softmax),
-
-    ])
+    model = Sequential()
+    model.add(Conv2D(
+        32,
+        (8, 8),
+        strides = 4,
+        activation = 'relu',
+        input_shape = state_size
+    ))
+    model.add(Conv2D(
+        64,
+        (4, 4),
+        strides = 4,
+        activation = 'relu',
+    ))
+    model.add(Conv2D(
+        64,
+        (3, 3),
+        strides = 2,
+        activation = 'relu',
+    ))
+    model.add(Flatten())
+    model.add(Dense(512, activation='relu')) #hidden
+    model.add(Dense(action_size, activation = 'softmax'))
 
     model.compile(
-        optimizer = 'adam',
+        optimizer = Adam(lr = 0.001),
         loss = 'mse',
         metrics=['accuracy']
     )
