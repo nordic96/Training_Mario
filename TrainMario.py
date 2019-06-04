@@ -9,12 +9,13 @@ from nes_py.wrappers import BinarySpaceToDiscreteSpaceEnv
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 
 ENV_ID = 'SuperMarioBros-v0'
-EPISODES = 100
-MODEL_FILE_PATH = './model/nn_model.HDF5'
+EPISODES = 50
+RANGE = 1000
+MODEL_FILE_PATH = './model/nn_model.h5'
 MODEL_DIR = './model/'
 
 def train_dqn(env):
-    '''
+    
     if os.path.exists(MODEL_FILE_PATH):
         model = tf.keras.models.load_model(MODEL_FILE_PATH)
         print('loaded model: {}'.format(MODEL_FILE_PATH))
@@ -23,8 +24,6 @@ def train_dqn(env):
             print('first time setup.')
             os.mkdir(MODEL_DIR)
         model = _build_model(action_size, state_size)
-    '''
-    model = _build_model(action_size, state_size)
     print(model.summary())
 
     
@@ -33,7 +32,9 @@ def train_dqn(env):
     identity = np.identity(env.action_space.n)
 
     for e in range(EPISODES):
-        for step in range(500):
+        max_train_result = 0
+        max_reward = 0
+        for step in range(RANGE):
             if done:
                 state = env.reset()
 
@@ -49,11 +50,17 @@ def train_dqn(env):
             last_state = state
 
             if reward > 0:
-                model.train_on_batch(x = np.expand_dims(last_state, axis = 0), y = identity[action: action + 1])
-
+                if reward > max_reward:
+                    max_reward = reward
+                    
+                train_result = model.train_on_batch(x = np.expand_dims(last_state, axis = 0),
+                                                    y = identity[action: action + 1]) #returns [scalar_mean_loss, prediction]
+                if train_result[0] > 0:
+                    max_train_result = train_result
+            
             env.render()
-
-        print('Ep: {}/{} '.format(e, EPISODES))
+        print('Ep: {}/{}, Max Reward: {}, {}'.format(e, EPISODES,
+                                                     max_reward, max_train_result))
         model.save(MODEL_FILE_PATH)
     
         
