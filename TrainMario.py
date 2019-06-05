@@ -3,13 +3,13 @@ import gym_super_mario_bros
 import os
 import numpy as np
 from random import randint
-from DQNAgent import _build_model
+from dqn import DQNAgent
 from nes_py.wrappers import BinarySpaceToDiscreteSpaceEnv
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 
 ENV_ID = 'SuperMarioBros-v0'
 EPISODES = 50
-RANGE = 1000
+RANGE = 5000
 MODEL_FILE_PATH = './model/nn_model.h5'
 MODEL_DIR = './model/'
 
@@ -22,7 +22,7 @@ def train_dqn(env):
         if not os.path.exists(MODEL_DIR):
             print('first time setup.')
             os.mkdir(MODEL_DIR)
-        model = _build_model(action_size, state_size)
+        model = DQNAgent(action_size, state_size).model
     print(model.summary())
 
     
@@ -48,23 +48,23 @@ def train_dqn(env):
             
             state, reward, done, info = env.step(action)
             last_state = state
+            
             score_obtained = prev_score - info['score']
             prev_score = info['score']
             reward += score_obtained * 0.01
+            if info['life'] == 0:
+                reward = 0
             
-            if reward > prev_reward - 1:
+            if reward > prev_reward :
                 train_result = model.train_on_batch(x = np.expand_dims(last_state, axis = 0),
                                                     y = identity[action: action + 1]) #returns [scalar_mean_loss, prediction]
-                if reward > prev_reward:
-                    print('Reward: {} Life: {} Train Result : {}'.format(reward, info['life'], train_result))
-
-                prev_reward = reward
+                print('Reward: {} Life: {} Train Result : {}'.format(reward, info['life'], train_result))
                 
                 if train_result[0] > 0:
                     max_train_result = train_result
-            
+                prev_reward = reward
             env.render()
-        #print('Ep: {}/{}, Max Reward: {}, {}'.format(e, EPISODES, max_reward, max_train_result))
+        print('EP: {}/{}'.format(e, EPISODES))
         model.save(MODEL_FILE_PATH)
     
         
