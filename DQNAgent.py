@@ -20,9 +20,10 @@ def _build_model(action_size, state_size):
     model.add(Conv2D(
         64,
         (3, 3),
-        strides = 2,
+        strides = 1,
         activation = 'relu',
     ))
+     
     model.add(Flatten())
     model.add(Dense(512, activation='relu')) #hidden
     model.add(Dense(action_size, activation = 'softmax'))

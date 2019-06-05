@@ -2,7 +2,6 @@ import tensorflow as tf
 import gym_super_mario_bros
 import os
 import numpy as np
-from action_wrapper import mario_action_interpret
 from random import randint
 from DQNAgent import _build_model
 from nes_py.wrappers import BinarySpaceToDiscreteSpaceEnv
@@ -32,8 +31,9 @@ def train_dqn(env):
     identity = np.identity(env.action_space.n)
 
     for e in range(EPISODES):
-        max_train_result = 0
-        max_reward = 0
+        sum_train_result = 0
+        prev_reward = 0
+        prev_score = 0
         for step in range(RANGE):
             if done:
                 state = env.reset()
@@ -45,22 +45,26 @@ def train_dqn(env):
             else:
                 action = np.argmax(model.predict(np.expand_dims(last_state, axis = 0)))
                 action_source = "learn"
-            #print('{}: {}'.format(action_source, mario_action_interpret(action)))
+            
             state, reward, done, info = env.step(action)
             last_state = state
-
-            if reward > 0:
-                if reward > max_reward:
-                    max_reward = reward
-                    
+            score_obtained = prev_score - info['score']
+            prev_score = info['score']
+            reward += score_obtained * 0.01
+            
+            if reward > prev_reward - 1:
                 train_result = model.train_on_batch(x = np.expand_dims(last_state, axis = 0),
                                                     y = identity[action: action + 1]) #returns [scalar_mean_loss, prediction]
+                if reward > prev_reward:
+                    print('Reward: {} Life: {} Train Result : {}'.format(reward, info['life'], train_result))
+
+                prev_reward = reward
+                
                 if train_result[0] > 0:
                     max_train_result = train_result
             
             env.render()
-        print('Ep: {}/{}, Max Reward: {}, {}'.format(e, EPISODES,
-                                                     max_reward, max_train_result))
+        #print('Ep: {}/{}, Max Reward: {}, {}'.format(e, EPISODES, max_reward, max_train_result))
         model.save(MODEL_FILE_PATH)
     
         
