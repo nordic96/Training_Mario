@@ -22,7 +22,7 @@ def train_dqn(env, state_size, action_size):
         if not os.path.exists(MODEL_DIR):
             print('first time setup.')
             os.mkdir(MODEL_DIR)
-        model = DQN_Model(action_size, state_size).model
+        model = DQN_Model(action_size, state_size, 'functional').model
     print(model.summary())
 
     
