@@ -3,17 +3,17 @@ import gym_super_mario_bros
 import os
 import numpy as np
 from random import randint
-from dqn import DQNAgent
+from nn_model.DQNAgent import DQN_Model
 from nes_py.wrappers import BinarySpaceToDiscreteSpaceEnv
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 
 ENV_ID = 'SuperMarioBros-v0'
 EPISODES = 50
 RANGE = 5000
-MODEL_FILE_PATH = './model/nn_model.h5'
-MODEL_DIR = './model/'
+MODEL_FILE_PATH = './saved_model/nn_model.hdf5'
+MODEL_DIR = './saved_model/'
 
-def train_dqn(env):
+def train_dqn(env, state_size, action_size):
     
     if os.path.exists(MODEL_FILE_PATH):
         model = tf.keras.models.load_model(MODEL_FILE_PATH)
@@ -22,7 +22,7 @@ def train_dqn(env):
         if not os.path.exists(MODEL_DIR):
             print('first time setup.')
             os.mkdir(MODEL_DIR)
-        model = DQNAgent(action_size, state_size).model
+        model = DQN_Model(action_size, state_size).model
     print(model.summary())
 
     
@@ -78,4 +78,4 @@ if __name__ == '__main__':
     print('state size: {}'.format(state_size))
     print('action size: {}'.format(action_size))
 
-    train_dqn(env)
+    train_dqn(env, state_size, action_size)
